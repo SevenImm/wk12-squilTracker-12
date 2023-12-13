@@ -16,9 +16,10 @@ db.connect(function(err) {
         return;
     } else {
         console.log("DB connected!")
+        promptUser()
     }
 })
-
+function promptUser() {
 inquirer
   .prompt([
     {
@@ -45,6 +46,7 @@ inquirer
           console.table(results);
         }
       });
+      promptUser()
     }
 
     if (answers.action === "add a department") {
@@ -65,9 +67,11 @@ inquirer
                 console.error("Error adding department:", err);
               } else {
                 console.log("Department added successfully!");
+                
               }
             }
           );
+          promptUser()
         });
     }
 
@@ -79,6 +83,7 @@ inquirer
           console.table(results);
         }
       });
+      promptUser()
     }
 
     if (answers.action === "add a role") {
@@ -98,7 +103,7 @@ inquirer
           {
             type: "number",
             name: "department_id",
-            message: "What is their department ID?",
+            message: "What is their new department ID?",
           },
         ])
         .then((roleAnswers) => {
@@ -113,6 +118,7 @@ inquirer
               }
             }
           );
+          promptUser()
         });
     }
 
@@ -124,6 +130,7 @@ inquirer
           console.table(results);
         }
       });
+      promptUser()
     }
 
     if (answers.action === "add an employee") {
@@ -168,26 +175,53 @@ inquirer
               }
             }
           );
+          promptUser()
         });
     }
 
     if (answers.action === "update an employee role") {
-      inquirer
-        .prompt([
-          // ... (prompt for employee and new role details)
-        ])
-        .then((updateAnswers) => {
-          db.query(
-            "UPDATE employee SET role_id = ? WHERE id = ?;",
-            [updateAnswers.new_role_id, updateAnswers.employee_id],
-            function (err, results) {
-              if (err) {
-                console.error("Error updating employee role:", err);
-              } else {
-                console.log("Employee role updated successfully!");
-              }
-            }
-          );
+        // Retrieve a list of all employees
+        db.query("SELECT id, CONCAT(first_name, ' ', last_name) AS employee_name FROM employee;", function (err, employeeResults) {
+          if (err) {
+            console.error("Error retrieving employees:", err);
+          } else {
+            // Display a list of employees to choose from
+            const employeeChoices = employeeResults.map((employee) => ({
+              name: employee.employee_name,
+              value: employee.id,
+            }));
+      
+            inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "employee_id",
+                  message: "Select the employee whose role you want to update:",
+                  choices: employeeChoices,
+                },
+                {
+                  type: "input",
+                  name: "new_role_id",
+                  message: "Enter the new role ID for the selected employee:",
+                },
+              ])
+              .then((updateAnswers) => {
+                // Update the employee's role
+                db.query(
+                  "UPDATE employee SET role_id = ? WHERE id = ?;",
+                  [updateAnswers.new_role_id, updateAnswers.employee_id],
+                  function (err, results) {
+                    if (err) {
+                      console.error("Error updating employee role:", err);
+                    } else {
+                      console.log("Employee role updated successfully!");
+                    }
+                  }
+                );
+                promptUser()
+              });
+          }
         });
-    }
-  });
+      }
+      });
+}
